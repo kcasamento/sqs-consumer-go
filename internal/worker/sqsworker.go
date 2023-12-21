@@ -67,7 +67,6 @@ func (w *SqsWorker) Submit(ctx context.Context, message interface{}) error {
 	}
 
 	for _, msg := range msgResult.Messages {
-		log.Printf("dispatching message %s\n", *msg.MessageId)
 		_ = w.wPool.Dispatch(ctx, func() {
 			w.handleMessage(ctx, &msg)
 		})
@@ -83,7 +82,7 @@ func (w *SqsWorker) Stop(ctx context.Context) error {
 func (w *SqsWorker) handleMessage(ctx context.Context, message *awstypes.Message) {
 	processId := uuid.New().String()
 	// TODO: metric
-	log.Printf("process %s started", processId)
+	// log.Printf("process %s started", processId)
 
 	retry, err := w.handler(ctx, processId, message)
 	if err != nil {
@@ -108,5 +107,5 @@ func (w *SqsWorker) handleMessage(ctx context.Context, message *awstypes.Message
 
 	// handle message succeeded
 	// TODO: metric
-	log.Printf("message %s has been ack'd\n", *message.MessageId)
+	// log.Printf("message %s has been ack'd\n", *message.MessageId)
 }
