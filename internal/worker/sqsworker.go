@@ -45,22 +45,29 @@ func (w *SqsWorker) Submit(ctx context.Context, message interface{}) error {
 	if !ok {
 		return fmt.Errorf("invalid message type for sqs workers")
 	}
+	return w.controlledSemSubmit(ctx, msgResult)
+}
 
-	// TODO: configurable
+func (w *SqsWorker) Stop(ctx context.Context) error {
+	return nil
+}
+
+func (w *SqsWorker) controlledSemSubmit(ctx context.Context, msgResult *sqs.ReceiveMessageOutput) error {
 	timeoutCtx, timeout := context.WithTimeout(ctx, 10*time.Second)
 	defer timeout()
+
+	h := func(ctx context.Context, message *awstypes.Message) {
+		defer w.sem.Release(1)
+		w.handleMessage(ctx, message)
+	}
 
 	for _, msg := range msgResult.Messages {
 		if err := w.sem.Acquire(timeoutCtx, 1); err != nil {
 			return err
 		}
-		go w.handleMessage(ctx, &msg)
+		go h(ctx, &msg)
 	}
 
-	return nil
-}
-
-func (w *SqsWorker) Stop(ctx context.Context) error {
 	return nil
 }
 
