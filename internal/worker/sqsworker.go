@@ -4,37 +4,57 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	awstypes "github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	"github.com/google/uuid"
 	"github.com/kcasamento/sqs-consumer-go/types"
-	"golang.org/x/sync/semaphore"
 )
 
-type Ack func(context.Context, *awstypes.Message) error
+type (
+	Ack        func(context.Context, *awstypes.Message) error
+	Dispatcher interface {
+		Dispatch(ctx context.Context, task func()) error
+	}
+	SqsWorkerOpt func(*SqsWorker)
+)
+
+func WithSemPool() SqsWorkerOpt {
+	return func(w *SqsWorker) {
+		w.wPool = NewSemPool(w.concurrency)
+	}
+}
+
+func WithWorkerPool() SqsWorkerOpt {
+	return func(w *SqsWorker) {
+		w.wPool = NewWorker(w.concurrency)
+	}
+}
 
 type SqsWorker struct {
 	stop        chan struct{}
-	sem         *semaphore.Weighted
+	wPool       Dispatcher
 	handler     types.HandleMessage
 	ack         Ack
 	concurrency int
-	// TODO: retry mode
 }
 
 func NewSqsWorker(
 	handler types.HandleMessage,
 	ack Ack,
 	concurrency int,
+	opts ...SqsWorkerOpt,
 ) Worker {
 	w := &SqsWorker{
 		concurrency: concurrency,
 		stop:        make(chan struct{}, 1),
 		handler:     handler,
-		sem:         semaphore.NewWeighted(int64(concurrency)),
 		ack:         ack,
+		wPool:       NewSemPool(concurrency),
+	}
+
+	for _, opt := range opts {
+		opt(w)
 	}
 
 	return w
@@ -45,35 +65,22 @@ func (w *SqsWorker) Submit(ctx context.Context, message interface{}) error {
 	if !ok {
 		return fmt.Errorf("invalid message type for sqs workers")
 	}
-	return w.controlledSemSubmit(ctx, msgResult)
+
+	for _, msg := range msgResult.Messages {
+		log.Printf("dispatching message %s\n", *msg.MessageId)
+		_ = w.wPool.Dispatch(ctx, func() {
+			w.handleMessage(ctx, &msg)
+		})
+	}
+
+	return nil
 }
 
 func (w *SqsWorker) Stop(ctx context.Context) error {
 	return nil
 }
 
-func (w *SqsWorker) controlledSemSubmit(ctx context.Context, msgResult *sqs.ReceiveMessageOutput) error {
-	timeoutCtx, timeout := context.WithTimeout(ctx, 10*time.Second)
-	defer timeout()
-
-	h := func(ctx context.Context, message *awstypes.Message) {
-		defer w.sem.Release(1)
-		w.handleMessage(ctx, message)
-	}
-
-	for _, msg := range msgResult.Messages {
-		if err := w.sem.Acquire(timeoutCtx, 1); err != nil {
-			return err
-		}
-		go h(ctx, &msg)
-	}
-
-	return nil
-}
-
 func (w *SqsWorker) handleMessage(ctx context.Context, message *awstypes.Message) {
-	defer w.sem.Release(1)
-
 	processId := uuid.New().String()
 	// TODO: metric
 	log.Printf("process %s started", processId)

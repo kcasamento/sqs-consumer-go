@@ -1,5 +1,7 @@
 package pool
 
+import "sync/atomic"
+
 type WaitingRoom interface {
 	Size() int
 	Queue(func())
@@ -12,30 +14,35 @@ type WaitingRoom interface {
 // waiting room
 // Could be better to use a ring buffer
 type SliceWaitingRoom struct {
-	q []func()
+	size *atomic.Int32
+	q    []func()
 }
 
 func NewSliceWaitingRoom() *SliceWaitingRoom {
 	return &SliceWaitingRoom{
-		q: make([]func(), 10),
+		q:    make([]func(), 10),
+		size: &atomic.Int32{},
 	}
 }
 
 func (wr *SliceWaitingRoom) Size() int {
-	return len(wr.q)
+	return int(wr.size.Load())
 }
 
 func (wr *SliceWaitingRoom) Queue(task func()) {
 	wr.q = append(wr.q, task)
+	wr.size.Add(1)
 }
 
 func (wr *SliceWaitingRoom) Push(task func()) {
 	wr.q = prependFunc(wr.q, task)
+	wr.size.Add(1)
 }
 
 func (wr *SliceWaitingRoom) Pop() func() {
 	f, q := wr.q[0], wr.q[1:]
 	wr.q = q
+	wr.size.Add(-1)
 	return f
 }
 

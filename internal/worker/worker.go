@@ -1,6 +1,8 @@
 package worker
 
-import "context"
+import (
+	"context"
+)
 
 type Worker interface {
 	Submit(context.Context, interface{}) error

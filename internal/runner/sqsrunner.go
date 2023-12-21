@@ -10,6 +10,13 @@ import (
 	"github.com/kcasamento/sqs-consumer-go/types"
 )
 
+type DispatchStrategy int
+
+const (
+	SemPool DispatchStrategy = iota + 1
+	WorkerPool
+)
+
 type SqsRunner struct {
 	stop                chan struct{}
 	worker              worker.Worker
@@ -21,6 +28,7 @@ type SqsRunner struct {
 	concurrency         int
 	visibilityTimeout   int
 	maxMessages         int
+	dispatchStrategy    DispatchStrategy
 }
 
 func NewSqsRunner(
@@ -32,6 +40,7 @@ func NewSqsRunner(
 	maxMessages int,
 	queueAttributeNames []string,
 	maxIdleTime int,
+	dispatchStrategy DispatchStrategy,
 ) Runner {
 	r := &SqsRunner{
 		maxIdleTime:         maxIdleTime,
@@ -43,12 +52,19 @@ func NewSqsRunner(
 		client:              client,
 		queueUrl:            queueUrl,
 		queueAttributeNames: queueAttributeNames,
+		dispatchStrategy:    dispatchStrategy,
+	}
+
+	dispatcher := worker.WithSemPool()
+	if dispatchStrategy == WorkerPool {
+		dispatcher = worker.WithWorkerPool()
 	}
 
 	w := worker.NewSqsWorker(
 		handler,
 		r.ack,
 		concurrency,
+		dispatcher,
 	)
 
 	r.worker = w

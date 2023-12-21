@@ -34,6 +34,7 @@ type Consumer struct {
 	credentialProvider aws.CredentialsProvider
 	heartbeat          heartbeat.Heartbeat
 	concurrency        int
+	dispatchStrategy   runner.DispatchStrategy
 }
 
 type ConsumerOptions func(*Consumer)
@@ -94,6 +95,12 @@ func WithMaxIdleTime(max int) ConsumerOptions {
 	}
 }
 
+func WithDispatchStrategy(strategy runner.DispatchStrategy) ConsumerOptions {
+	return func(c *Consumer) {
+		c.dispatchStrategy = strategy
+	}
+}
+
 // Overrides how the AWS sdk will resolve the SQS endpoint
 func WithEndpointResolver(resolver sqs.EndpointResolverV2) ConsumerOptions {
 	return func(c *Consumer) {
@@ -129,6 +136,7 @@ func New(
 		},
 		endpointResolver:   nil,
 		credentialProvider: nil,
+		dispatchStrategy:   runner.SemPool,
 	}
 
 	for _, option := range opts {
@@ -175,6 +183,7 @@ func New(
 		consumer.queueConfig.maxMessages,
 		consumer.queueConfig.queueAttributeNames,
 		consumer.queueConfig.maxIdleTime,
+		consumer.dispatchStrategy,
 	)
 
 	consumer.runner = r

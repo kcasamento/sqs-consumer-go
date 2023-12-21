@@ -1,6 +1,7 @@
 package pool
 
 import (
+	"log"
 	"math"
 	"sync"
 	"sync/atomic"
@@ -27,12 +28,13 @@ type Pool struct {
 
 func NewPool(opts ...PoolOpt) *Pool {
 	pool := &Pool{
-		maxWorkers:  1,
-		taskQueue:   make(chan func()),
-		workerQueue: make(chan func()),
-		stoppedChan: make(chan struct{}),
-		idleTimeout: math.MaxInt64,
-		waiting:     &atomic.Int32{},
+		maxWorkers:   1,
+		taskQueue:    make(chan func()),
+		workerQueue:  make(chan func()),
+		stoppedChan:  make(chan struct{}),
+		idleTimeout:  math.MaxInt64,
+		waiting:      &atomic.Int32{},
+		waitingQueue: NewSliceWaitingRoom(),
 	}
 
 	for _, opt := range opts {
@@ -46,6 +48,7 @@ func NewPool(opts ...PoolOpt) *Pool {
 }
 
 func (p *Pool) Submit(task func()) {
+	log.Printf("submitting task %v\n", task)
 	if task != nil {
 		p.taskQueue <- task
 	}
@@ -71,6 +74,7 @@ Loop:
 	for {
 		// check the waiting room
 		if p.waitingQueue.Size() != 0 {
+			log.Printf("waiting queue size: %d\n", p.waitingQueue.Size())
 			if !p.processWaitingQueue() {
 				break Loop
 			}
@@ -83,6 +87,8 @@ Loop:
 			if !ok {
 				break Loop
 			}
+
+			log.Printf("task received: %v\n", task)
 
 			// new task
 			select {
@@ -135,6 +141,7 @@ func worker(task func(), workerQueue chan func(), wg *sync.WaitGroup) {
 	// it can process
 	// Once it receives a nil task it will shutdown
 	for task != nil {
+		log.Printf("worker received task %v\n", task)
 		task()
 		task = <-workerQueue
 	}

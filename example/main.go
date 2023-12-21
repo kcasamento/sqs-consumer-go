@@ -10,6 +10,7 @@ import (
 	"time"
 
 	consumer "github.com/kcasamento/sqs-consumer-go"
+	"github.com/kcasamento/sqs-consumer-go/internal/runner"
 )
 
 func main() {
@@ -20,7 +21,7 @@ func main() {
 	c, err := consumer.New(
 		queueUrl,
 		func(_ context.Context, processId string, _ interface{}) (bool, error) {
-			time.Sleep(2 * time.Second)
+			// time.Sleep(2 * time.Second)
 			fmt.Printf("processId: %s\n", processId)
 			return false, nil
 		},
@@ -31,6 +32,9 @@ func main() {
 			Endpoint: "http://localhost:4566",
 		}),
 		consumer.WithCredentialProvider(&LocalCredConfig{}),
+		consumer.WithMaxMessages(10),
+		consumer.WithDispatchStrategy(runner.WorkerPool),
+		// consumer.WithDispatchStrategy(runner.SemPool),
 	)
 	if err != nil {
 		log.Printf("error creating consumer: %v", err)
