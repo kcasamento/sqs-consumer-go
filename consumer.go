@@ -35,6 +35,8 @@ type Consumer struct {
 	heartbeat          heartbeat.Heartbeat
 	concurrency        int
 	dispatchStrategy   runner.DispatchStrategy
+	batchSize          int
+	batchInterval      time.Duration
 }
 
 type ConsumerOptions func(*Consumer)
@@ -101,6 +103,18 @@ func WithDispatchStrategy(strategy runner.DispatchStrategy) ConsumerOptions {
 	}
 }
 
+func WithAckBatchSize(size int) ConsumerOptions {
+	return func(c *Consumer) {
+		c.batchSize = size
+	}
+}
+
+func WithAckBatchInterval(interval time.Duration) ConsumerOptions {
+	return func(c *Consumer) {
+		c.batchInterval = interval
+	}
+}
+
 // Overrides how the AWS sdk will resolve the SQS endpoint
 func WithEndpointResolver(resolver sqs.EndpointResolverV2) ConsumerOptions {
 	return func(c *Consumer) {
@@ -125,6 +139,8 @@ func New(
 		client:          nil,
 		concurrency:     100,
 		handler:         handler,
+		batchSize:       10,
+		batchInterval:   5 * time.Second,
 		heartbeatConfig: nil,
 		heartbeat:       nil,
 		queueConfig: &queueConfig{
@@ -176,6 +192,8 @@ func New(
 
 	r := runner.NewSqsRunner(
 		consumer.handler,
+		consumer.batchSize,
+		consumer.batchInterval,
 		consumer.client,
 		consumer.queueConfig.queueUrl,
 		consumer.concurrency,

@@ -9,7 +9,7 @@ AWS_REGION=us-east-1
 
 
 
-for i in {1..10}
+for i in {1..156}
 do
   # aws --endpoint-url=http://${LOCALSTACK_HOST}:4566 sqs send-message --queue-url http://localstack:4566/000000000000/consumer-test-queue  --region ${AWS_REGION} --message-body '{
   #         "event_id": "7456c8ee-949d-4100-a0c6-6ae8e581ae15",

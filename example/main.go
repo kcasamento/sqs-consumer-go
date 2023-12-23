@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -22,12 +21,12 @@ func main() {
 		queueUrl,
 		func(_ context.Context, processId string, _ interface{}) (bool, error) {
 			// time.Sleep(2 * time.Second)
-			fmt.Printf("processId: %s\n", processId)
+			// fmt.Printf("processId: %s\n", processId)
 			return false, nil
 		},
 		consumer.WithHeartbeat(1*time.Second),
 		consumer.WithConcurrency(10),
-		consumer.WithMaxIdleTime(0),
+		consumer.WithMaxIdleTime(5),
 		consumer.WithEndpointResolver(&SqsLocalConfig{
 			Endpoint: "http://localhost:4566",
 		}),

@@ -3,6 +3,7 @@ package runner
 import (
 	"context"
 	"log"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	awstypes "github.com/aws/aws-sdk-go-v2/service/sqs/types"
@@ -33,6 +34,8 @@ type SqsRunner struct {
 
 func NewSqsRunner(
 	handler types.HandleMessage,
+	batchSize int,
+	batchInterval time.Duration,
 	client *sqs.Client,
 	queueUrl string,
 	concurrency int,
@@ -65,6 +68,8 @@ func NewSqsRunner(
 		r.ack,
 		concurrency,
 		dispatcher,
+		worker.WithMaxBatchSize(batchSize),
+		worker.WithBatchFlushInterval(batchInterval),
 	)
 
 	r.worker = w
@@ -115,11 +120,23 @@ func (r *SqsRunner) tick(ctx context.Context) {
 	}
 }
 
-func (r *SqsRunner) ack(ctx context.Context, message *awstypes.Message) error {
-	_, err := r.client.DeleteMessage(ctx, &sqs.DeleteMessageInput{
-		QueueUrl:      &r.queueUrl,
-		ReceiptHandle: message.ReceiptHandle,
-	})
+func (r *SqsRunner) ack(messages []*awstypes.Message) {
+	ctx := context.Background()
 
-	return err
+	log.Printf("acking batch of %d messages\n", len(messages))
+
+	batch := make([]awstypes.DeleteMessageBatchRequestEntry, len(messages))
+	for i, msg := range messages {
+		batch[i] = awstypes.DeleteMessageBatchRequestEntry{
+			Id:            msg.MessageId,
+			ReceiptHandle: msg.ReceiptHandle,
+		}
+	}
+	_, err := r.client.DeleteMessageBatch(ctx, &sqs.DeleteMessageBatchInput{
+		Entries:  batch,
+		QueueUrl: &r.queueUrl,
+	})
+	if err != nil {
+		log.Printf("error deleting batch of messages: %v\n", err)
+	}
 }

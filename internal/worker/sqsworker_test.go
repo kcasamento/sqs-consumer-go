@@ -15,9 +15,7 @@ func BenchmarkSqsWorker_SemPool(b *testing.B) {
 		func(context.Context, string, interface{}) (bool, error) {
 			return false, nil
 		},
-		func(context.Context, *awstypes.Message) error {
-			return nil
-		},
+		func(_ []*awstypes.Message) {},
 		100,
 		WithSemPool(),
 	)
@@ -42,9 +40,7 @@ func BenchmarkSqsWorker_WorkerPool(b *testing.B) {
 		func(context.Context, string, interface{}) (bool, error) {
 			return false, nil
 		},
-		func(context.Context, *awstypes.Message) error {
-			return nil
-		},
+		func([]*awstypes.Message) {},
 		100,
 		WithWorkerPool(),
 	)

@@ -4,15 +4,17 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	awstypes "github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	"github.com/google/uuid"
+	"github.com/kcasamento/sqs-consumer-go/internal/harvester"
 	"github.com/kcasamento/sqs-consumer-go/types"
 )
 
 type (
-	Ack        func(context.Context, *awstypes.Message) error
+	Ack        func([]*awstypes.Message)
 	Dispatcher interface {
 		Dispatch(ctx context.Context, task func()) error
 	}
@@ -31,12 +33,26 @@ func WithWorkerPool() SqsWorkerOpt {
 	}
 }
 
+func WithMaxBatchSize(maxBatchSize int) SqsWorkerOpt {
+	return func(w *SqsWorker) {
+		w.maxBatchSize = maxBatchSize
+	}
+}
+
+func WithBatchFlushInterval(batchFlushInterval time.Duration) SqsWorkerOpt {
+	return func(w *SqsWorker) {
+		w.batchFlushInterval = batchFlushInterval
+	}
+}
+
 type SqsWorker struct {
-	stop        chan struct{}
-	wPool       Dispatcher
-	handler     types.HandleMessage
-	ack         Ack
-	concurrency int
+	stop               chan struct{}
+	wPool              Dispatcher
+	handler            types.HandleMessage
+	harvester          *harvester.BatchHarvester[*awstypes.Message]
+	batchFlushInterval time.Duration
+	maxBatchSize       int
+	concurrency        int
 }
 
 func NewSqsWorker(
@@ -46,16 +62,19 @@ func NewSqsWorker(
 	opts ...SqsWorkerOpt,
 ) Worker {
 	w := &SqsWorker{
-		concurrency: concurrency,
-		stop:        make(chan struct{}, 1),
-		handler:     handler,
-		ack:         ack,
-		wPool:       NewSemPool(concurrency),
+		concurrency:        concurrency,
+		stop:               make(chan struct{}, 1),
+		handler:            handler,
+		maxBatchSize:       10,
+		batchFlushInterval: 5 * time.Second,
+		wPool:              NewSemPool(concurrency),
 	}
 
 	for _, opt := range opts {
 		opt(w)
 	}
+
+	w.harvester = harvester.NewBatchHarvester[*awstypes.Message](ack, w.maxBatchSize, w.batchFlushInterval)
 
 	return w
 }
@@ -76,6 +95,7 @@ func (w *SqsWorker) Submit(ctx context.Context, message interface{}) error {
 }
 
 func (w *SqsWorker) Stop(ctx context.Context) error {
+	w.harvester.Stop()
 	return nil
 }
 
@@ -98,14 +118,5 @@ func (w *SqsWorker) handleMessage(ctx context.Context, message *awstypes.Message
 		// TODO: metric
 	}
 
-	if err := w.ack(ctx, message); err != nil {
-		// Error ack'ing message...
-		// TODO: metric
-		log.Printf("error acking message: %v\n", err)
-		return
-	}
-
-	// handle message succeeded
-	// TODO: metric
-	// log.Printf("message %s has been ack'd\n", *message.MessageId)
+	w.harvester.Add(message)
 }
