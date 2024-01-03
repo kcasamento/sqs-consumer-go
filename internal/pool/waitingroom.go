@@ -12,7 +12,8 @@ type WaitingRoom interface {
 // Very basic and not very good
 // implementation of a sliced based
 // waiting room
-// Could be better to use a ring buffer
+// TODO: Could be better to use a ring buffer
+// TODO: other implementations beside a ring buffer?
 type SliceWaitingRoom struct {
 	size *atomic.Int32
 	q    []func()

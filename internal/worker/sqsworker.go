@@ -80,11 +80,16 @@ func NewSqsWorker(
 }
 
 func (w *SqsWorker) Submit(ctx context.Context, message interface{}) error {
+	// this implementation only supposts sqs messages
+	// so here we do some type checking
 	msgResult, ok := message.(*sqs.ReceiveMessageOutput)
 	if !ok {
 		return fmt.Errorf("invalid message type for sqs workers")
 	}
 
+	// Now that we know we have an sqs objects, range over
+	// the individual messages in the batch, and dispatch
+	// them to the worker pool
 	for _, msg := range msgResult.Messages {
 		_ = w.wPool.Dispatch(ctx, func() {
 			w.handleMessage(ctx, &msg)
@@ -100,7 +105,10 @@ func (w *SqsWorker) Stop(ctx context.Context) error {
 }
 
 func (w *SqsWorker) handleMessage(ctx context.Context, message *awstypes.Message) {
+	// TODO: generating uuids will be inefficient
+	// under heavy load...currently for demo purposes
 	processId := uuid.New().String()
+
 	// TODO: metric
 	// log.Printf("process %s started", processId)
 
@@ -118,5 +126,10 @@ func (w *SqsWorker) handleMessage(ctx context.Context, message *awstypes.Message
 		// TODO: metric
 	}
 
+	// the message was processed but we
+	// won't necessarily ack it right away
+	// but rather queue it up in memory
+	// and flush the messages in batches
+	// using the harvester
 	w.harvester.Add(message)
 }

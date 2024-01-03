@@ -83,6 +83,8 @@ func (r *SqsRunner) Run(ctx context.Context) {
 }
 
 func (w *SqsRunner) Stop(ctx context.Context) {
+	w.stop <- struct{}{}
+
 	w.worker.Stop(ctx)
 }
 

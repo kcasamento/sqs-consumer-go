@@ -10,6 +10,9 @@ type WorkerPool struct {
 	wp pool.Pool
 }
 
+// Since the worker pool implementation is a bit
+// more complex then using a semaphore, this just wraps
+// the worker pool in order to satisfy the Worker interface
 func NewWorker(concurrency int) *WorkerPool {
 	return &WorkerPool{
 		wp: *pool.NewPool(

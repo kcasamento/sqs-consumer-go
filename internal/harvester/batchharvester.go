@@ -1,13 +1,16 @@
 package harvester
 
 import (
+	"reflect"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
 type BatchHarvester[T any] struct {
 	clock         *time.Ticker
 	in            chan T
+	inClosed      *atomic.Bool
 	stopped       chan struct{}
 	onBatch       func([]T)
 	buffer        []T
@@ -24,6 +27,7 @@ func NewBatchHarvester[T any](
 ) Harvester[T] {
 	h := &BatchHarvester[T]{
 		in:            make(chan T, 1024),
+		inClosed:      &atomic.Bool{},
 		onBatch:       onBatch,
 		maxBatchSize:  maxBatchSize,
 		flushInterval: flushInterval,
@@ -38,20 +42,35 @@ func NewBatchHarvester[T any](
 }
 
 func (h *BatchHarvester[T]) Add(item T) {
+	if closed := h.inClosed.Load(); closed {
+		return
+	}
+
+	// add the item to be harvested to the in channel
 	h.in <- item
+
+	// since the clock is stopped after a flush,
+	// we need to start it back up once we get a new item
 	h.clock.Reset(h.flushInterval)
 }
 
 func (h *BatchHarvester[T]) Stop() {
+	// signal the in channel is closed
+	// and close the channel
+	h.inClosed.Store(true)
 	close(h.in)
+
+	// stop the clock to free up resouces
 	h.clock.Stop()
 
+	// wait for current buffer to be flushed
+	// and then exit
 	<-h.stopped
 }
 
 func (h *BatchHarvester[T]) Flush() {
-	// try and flush buffered
-	// if data is empty ignore
+	// try and flush buffer
+	// if data is empty, ignore
 	// else notify the callback
 
 	data := h.flushData()
@@ -60,6 +79,12 @@ func (h *BatchHarvester[T]) Flush() {
 	}
 
 	h.onBatch(data)
+
+	// stop the clock since at this point
+	// we know there is nothing left in the buffer
+	// to be harvested
+	// the clock will get restarted when a new item comes
+	// in
 	h.clock.Stop()
 }
 
@@ -83,10 +108,11 @@ func (h *BatchHarvester[T]) flushData() []T {
 	h.l.Lock()
 	defer h.l.Unlock()
 
-	// make a copy of the buffer
+	// TODO: make a deep copy of the buffer
 	// to return to the caller
 	data := make([]T, h.ptr)
 	for i := 0; i < h.ptr; i++ {
+		// copy(data[i], h.buffer[i])
 		data[i] = h.buffer[i]
 	}
 
@@ -95,6 +121,20 @@ func (h *BatchHarvester[T]) flushData() []T {
 
 	return data
 }
+
+// Doesn't work for nested pointers in the struct
+// func copy[T any](dest T, source T) {
+// 	x := reflect.ValueOf(source)
+// 	if x.Kind() == reflect.Ptr {
+// 		starX := x.Elem()
+// 		y := reflect.New(starX.Type())
+// 		starY := y.Elem()
+// 		starY.Set(starX)
+// 		reflect.ValueOf(dest).Elem().Set(y.Elem())
+// 	} else {
+// 		dest = x.Interface().(T)
+// 	}
+// }
 
 func (h *BatchHarvester[T]) start() {
 	for {

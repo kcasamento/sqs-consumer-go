@@ -135,6 +135,7 @@ func New(
 	handler types.HandleMessage,
 	opts ...ConsumerOptions,
 ) (*Consumer, error) {
+	// default empty config
 	consumer := &Consumer{
 		runner:          nil,
 		client:          nil,
@@ -156,6 +157,7 @@ func New(
 		dispatchStrategy:   runner.SemPool,
 	}
 
+	// range over options
 	for _, option := range opts {
 		option(consumer)
 	}
@@ -177,8 +179,10 @@ func New(
 
 	sqsClient := service.NewSqsClient(c)
 
+	// set the client to interact with sqs
 	consumer.client = sqsClient
 
+	// setup heartbeat
 	if consumer.heartbeatConfig != nil {
 		hbHandler, hb := heartbeat.NewSqsHeartbeat(
 			consumer.client,
@@ -214,8 +218,13 @@ func New(
 
 func (c *Consumer) Start(ctx context.Context) {
 	if c.heartbeat != nil {
+		// starts the heartbeat service in the
+		// background
 		c.heartbeat.Start(ctx)
 	}
+
+	// open the flood gates
+	// and start processing messages
 	c.runner.Run(ctx)
 }
 
