@@ -8,6 +8,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.29.5
 	github.com/aws/smithy-go v1.19.0
 	github.com/google/uuid v1.5.0
+	go.uber.org/mock v0.4.0
 	golang.org/x/sync v0.5.0
 )
 

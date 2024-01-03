@@ -7,6 +7,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	awstypes "github.com/aws/aws-sdk-go-v2/service/sqs/types"
+	"github.com/kcasamento/sqs-consumer-go/internal/service"
 	"github.com/kcasamento/sqs-consumer-go/internal/worker"
 	"github.com/kcasamento/sqs-consumer-go/types"
 )
@@ -22,7 +23,7 @@ type SqsRunner struct {
 	stop                chan struct{}
 	worker              worker.Worker
 	handler             types.HandleMessage
-	client              *sqs.Client
+	client              service.Sqs
 	queueUrl            string
 	queueAttributeNames []string
 	maxIdleTime         int
@@ -36,7 +37,7 @@ func NewSqsRunner(
 	handler types.HandleMessage,
 	batchSize int,
 	batchInterval time.Duration,
-	client *sqs.Client,
+	client service.Sqs,
 	queueUrl string,
 	concurrency int,
 	visibilityTimeout int,
@@ -81,7 +82,8 @@ func (r *SqsRunner) Run(ctx context.Context) {
 	go r.run(ctx)
 }
 
-func (w *SqsRunner) Stop(_ context.Context) {
+func (w *SqsRunner) Stop(ctx context.Context) {
+	w.worker.Stop(ctx)
 }
 
 func (w *SqsRunner) run(ctx context.Context) {
@@ -122,8 +124,6 @@ func (r *SqsRunner) tick(ctx context.Context) {
 
 func (r *SqsRunner) ack(messages []*awstypes.Message) {
 	ctx := context.Background()
-
-	log.Printf("acking batch of %d messages\n", len(messages))
 
 	batch := make([]awstypes.DeleteMessageBatchRequestEntry, len(messages))
 	for i, msg := range messages {

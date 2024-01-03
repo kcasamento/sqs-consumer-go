@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/kcasamento/sqs-consumer-go/internal/heartbeat"
 	"github.com/kcasamento/sqs-consumer-go/internal/runner"
+	"github.com/kcasamento/sqs-consumer-go/internal/service"
 	"github.com/kcasamento/sqs-consumer-go/types"
 )
 
@@ -18,15 +19,15 @@ type heartbeatConfig struct {
 
 type queueConfig struct {
 	queueUrl            string
+	queueAttributeNames []string
 	visibilityTimeout   int
 	maxMessages         int
-	queueAttributeNames []string
 	maxIdleTime         int
 }
 
 type Consumer struct {
 	runner             runner.Runner
-	client             *sqs.Client
+	client             service.Sqs
 	handler            types.HandleMessage
 	heartbeatConfig    *heartbeatConfig
 	queueConfig        *queueConfig
@@ -44,7 +45,7 @@ type ConsumerOptions func(*Consumer)
 // Provide your own sqs client to interface with sqs
 func WithSqsClient(client *sqs.Client) ConsumerOptions {
 	return func(c *Consumer) {
-		c.client = client
+		c.client = service.NewSqsClient(client)
 	}
 }
 
@@ -174,7 +175,9 @@ func New(
 		}
 	})
 
-	consumer.client = c
+	sqsClient := service.NewSqsClient(c)
+
+	consumer.client = sqsClient
 
 	if consumer.heartbeatConfig != nil {
 		hbHandler, hb := heartbeat.NewSqsHeartbeat(

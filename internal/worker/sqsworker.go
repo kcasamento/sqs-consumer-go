@@ -23,7 +23,7 @@ type (
 
 func WithSemPool() SqsWorkerOpt {
 	return func(w *SqsWorker) {
-		w.wPool = NewSemPool(w.concurrency)
+		w.wPool = NewSemPool(w.concurrency, 10*time.Second)
 	}
 }
 
@@ -49,7 +49,7 @@ type SqsWorker struct {
 	stop               chan struct{}
 	wPool              Dispatcher
 	handler            types.HandleMessage
-	harvester          *harvester.BatchHarvester[*awstypes.Message]
+	harvester          harvester.Harvester[*awstypes.Message]
 	batchFlushInterval time.Duration
 	maxBatchSize       int
 	concurrency        int
@@ -67,7 +67,7 @@ func NewSqsWorker(
 		handler:            handler,
 		maxBatchSize:       10,
 		batchFlushInterval: 5 * time.Second,
-		wPool:              NewSemPool(concurrency),
+		wPool:              NewSemPool(concurrency, 10*time.Second),
 	}
 
 	for _, opt := range opts {

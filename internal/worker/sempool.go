@@ -2,27 +2,44 @@ package worker
 
 import (
 	"context"
+	"fmt"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"golang.org/x/sync/semaphore"
 )
 
 type SemPool struct {
-	sem *semaphore.Weighted
+	stop          *atomic.Bool
+	wg            *sync.WaitGroup
+	sem           *semaphore.Weighted
+	aquireTimeout time.Duration
 }
 
-func NewSemPool(concurrency int) *SemPool {
+func NewSemPool(
+	concurrency int,
+	aquireTimeout time.Duration,
+) *SemPool {
 	return &SemPool{
-		sem: semaphore.NewWeighted(int64(concurrency)),
+		wg:            &sync.WaitGroup{},
+		sem:           semaphore.NewWeighted(int64(concurrency)),
+		aquireTimeout: aquireTimeout,
+		stop:          &atomic.Bool{},
 	}
 }
 
 func (p *SemPool) Dispatch(ctx context.Context, task func()) error {
-	timeoutCtx, timeout := context.WithTimeout(ctx, 10*time.Second)
+	if p.stop.Load() {
+		return fmt.Errorf("pool is stopped")
+	}
+
+	timeoutCtx, timeout := context.WithTimeout(ctx, p.aquireTimeout)
 	defer timeout()
 
 	h := func() {
 		defer p.sem.Release(1)
+		defer p.wg.Done()
 		task()
 	}
 
@@ -30,6 +47,23 @@ func (p *SemPool) Dispatch(ctx context.Context, task func()) error {
 		return err
 	}
 
+	p.wg.Add(1)
 	go h()
 	return nil
+}
+
+func (p *SemPool) Stop(ctx context.Context) error {
+	p.stop.Store(true)
+	waitCh := make(chan struct{})
+	go func() {
+		defer close(waitCh)
+		p.wg.Wait()
+	}()
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-waitCh:
+		return nil
+	}
 }

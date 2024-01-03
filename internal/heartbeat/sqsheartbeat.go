@@ -9,6 +9,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
+	"github.com/kcasamento/sqs-consumer-go/internal/service"
 	ctypes "github.com/kcasamento/sqs-consumer-go/types"
 )
 
@@ -20,14 +21,14 @@ type SqsHeartbeat struct {
 	handler           ctypes.HandleMessage
 	q                 chan string
 	stop              chan struct{}
-	heartbeatInterval time.Duration
-	client            *sqs.Client
+	client            service.Sqs
 	queueUrl          string
 	visibilityTimeout int
+	heartbeatInterval time.Duration
 }
 
 func NewSqsHeartbeat(
-	client *sqs.Client,
+	client service.Sqs,
 	queueUrl string,
 	heartbeatInterval time.Duration,
 	visibilityTimeout int,
