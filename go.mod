@@ -1,6 +1,6 @@
 module github.com/kcasamento/sqs-consumer-go
 
-go 1.21.5
+go 1.23
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.24.0

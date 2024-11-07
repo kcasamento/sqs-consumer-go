@@ -122,26 +122,3 @@ func BenchmarkBatchHarvester_struct(b *testing.B) {
 
 	h.Stop()
 }
-
-type testCopyStruct struct {
-	s     string
-	i     int
-	inner *testStruct
-}
-
-func TestCopy(t *testing.T) {
-	buffer := make([]testCopyStruct, 3)
-	buffer[0] = testCopyStruct{s: "test0", i: 0, inner: &testStruct{i: 0}}
-	buffer[1] = testCopyStruct{s: "test1", i: 1, inner: &testStruct{i: 1}}
-	buffer[2] = testCopyStruct{s: "test2", i: 2, inner: &testStruct{i: 2}}
-
-	data := make([]testCopyStruct, 3)
-	for i := 0; i < 3; i++ {
-		copy(data[i], buffer[i])
-		data[i].s = fmt.Sprintf("new_test%d", i)
-		// data[i].inner.i = i * 10
-	}
-
-	fmt.Printf("old=%v", buffer)
-	fmt.Printf("new=%v", data)
-}

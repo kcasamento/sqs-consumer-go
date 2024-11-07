@@ -4,4 +4,4 @@ import (
 	"context"
 )
 
-type HandleMessage func(context.Context, string, interface{}) (bool, error)
+type HandleMessage[T interface{}] func(context.Context, string, T) (bool, error)

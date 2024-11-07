@@ -2,7 +2,6 @@ package worker
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"time"
 
@@ -14,7 +13,7 @@ import (
 )
 
 type (
-	Ack        func([]*awstypes.Message)
+	Ack        func([]awstypes.Message)
 	Dispatcher interface {
 		Dispatch(ctx context.Context, task func()) error
 	}
@@ -45,22 +44,24 @@ func WithBatchFlushInterval(batchFlushInterval time.Duration) SqsWorkerOpt {
 	}
 }
 
+var _ Worker[*sqs.ReceiveMessageOutput] = (*SqsWorker)(nil)
+
 type SqsWorker struct {
 	stop               chan struct{}
 	wPool              Dispatcher
-	handler            types.HandleMessage
-	harvester          harvester.Harvester[*awstypes.Message]
+	handler            types.HandleMessage[awstypes.Message]
+	harvester          harvester.Harvester[awstypes.Message]
 	batchFlushInterval time.Duration
 	maxBatchSize       int
 	concurrency        int
 }
 
 func NewSqsWorker(
-	handler types.HandleMessage,
+	handler types.HandleMessage[awstypes.Message],
 	ack Ack,
 	concurrency int,
 	opts ...SqsWorkerOpt,
-) Worker {
+) *SqsWorker {
 	w := &SqsWorker{
 		concurrency:        concurrency,
 		stop:               make(chan struct{}, 1),
@@ -74,25 +75,18 @@ func NewSqsWorker(
 		opt(w)
 	}
 
-	w.harvester = harvester.NewBatchHarvester[*awstypes.Message](ack, w.maxBatchSize, w.batchFlushInterval)
+	w.harvester = harvester.NewBatchHarvester[awstypes.Message](ack, w.maxBatchSize, w.batchFlushInterval)
 
 	return w
 }
 
-func (w *SqsWorker) Submit(ctx context.Context, message interface{}) error {
-	// this implementation only supposts sqs messages
-	// so here we do some type checking
-	msgResult, ok := message.(*sqs.ReceiveMessageOutput)
-	if !ok {
-		return fmt.Errorf("invalid message type for sqs workers")
-	}
-
-	// Now that we know we have an sqs objects, range over
+func (w *SqsWorker) Submit(ctx context.Context, message *sqs.ReceiveMessageOutput) error {
+	// Now that we know we have the sqs objects, range over
 	// the individual messages in the batch, and dispatch
 	// them to the worker pool
-	for _, msg := range msgResult.Messages {
+	for _, msg := range message.Messages {
 		_ = w.wPool.Dispatch(ctx, func() {
-			w.handleMessage(ctx, &msg)
+			w.handleMessage(ctx, msg)
 		})
 	}
 
@@ -104,7 +98,7 @@ func (w *SqsWorker) Stop(ctx context.Context) error {
 	return nil
 }
 
-func (w *SqsWorker) handleMessage(ctx context.Context, message *awstypes.Message) {
+func (w *SqsWorker) handleMessage(ctx context.Context, message awstypes.Message) {
 	// TODO: generating uuids will be inefficient
 	// under heavy load...currently for demo purposes
 	processId := uuid.New().String()

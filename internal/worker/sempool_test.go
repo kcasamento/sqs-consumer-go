@@ -2,8 +2,6 @@ package worker
 
 import (
 	"context"
-	"fmt"
-	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -32,31 +30,26 @@ func TestSempool_Timeout(t *testing.T) {
 }
 
 func TestSempool_Stop(t *testing.T) {
-	wg := &sync.WaitGroup{}
-	c := make(chan struct{})
 	counter := atomic.Int32{}
 
 	p := NewSemPool(10, 1*time.Second)
 
 	ctx := context.Background()
 
-	wg.Add(2)
 	_ = p.Dispatch(ctx, func() {
-		defer wg.Done()
-		<-c
+		time.Sleep(1 * time.Millisecond)
 		counter.Add(1)
 	})
 
 	_ = p.Dispatch(ctx, func() {
-		defer wg.Done()
-		<-c
+		time.Sleep(2 * time.Millisecond)
 		counter.Add(1)
 	})
 
 	p.Stop(ctx)
 
-	c <- struct{}{}
-	wg.Wait()
-
-	fmt.Printf("counter: %d\n", counter.Load())
+	result := counter.Load()
+	if result != 2 {
+		t.Fatalf("expected 2, but got %d", result)
+	}
 }

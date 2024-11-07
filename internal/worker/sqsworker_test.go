@@ -12,10 +12,10 @@ import (
 
 func BenchmarkSqsWorker_SemPool(b *testing.B) {
 	w := NewSqsWorker(
-		func(context.Context, string, interface{}) (bool, error) {
+		func(context.Context, string, awstypes.Message) (bool, error) {
 			return false, nil
 		},
-		func(_ []*awstypes.Message) {},
+		func(_ []awstypes.Message) {},
 		100,
 		WithSemPool(),
 	)
@@ -37,10 +37,10 @@ func BenchmarkSqsWorker_SemPool(b *testing.B) {
 
 func BenchmarkSqsWorker_WorkerPool(b *testing.B) {
 	w := NewSqsWorker(
-		func(context.Context, string, interface{}) (bool, error) {
+		func(context.Context, string, awstypes.Message) (bool, error) {
 			return false, nil
 		},
-		func([]*awstypes.Message) {},
+		func([]awstypes.Message) {},
 		100,
 		WithWorkerPool(),
 	)

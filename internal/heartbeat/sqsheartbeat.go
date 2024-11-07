@@ -2,7 +2,6 @@ package heartbeat
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -18,7 +17,7 @@ const (
 )
 
 type SqsHeartbeat struct {
-	handler           ctypes.HandleMessage
+	handler           ctypes.HandleMessage[types.Message]
 	q                 chan string
 	stop              chan struct{}
 	client            service.Sqs
@@ -33,8 +32,8 @@ func NewSqsHeartbeat(
 	heartbeatInterval time.Duration,
 	visibilityTimeout int,
 	bufferSize int,
-	handler ctypes.HandleMessage,
-) (ctypes.HandleMessage, Heartbeat) {
+	handler ctypes.HandleMessage[types.Message],
+) (ctypes.HandleMessage[types.Message], Heartbeat) {
 	h := &SqsHeartbeat{
 		client:            client,
 		queueUrl:          queueUrl,
@@ -68,13 +67,8 @@ func (h *SqsHeartbeat) Stop(_ context.Context) error {
 	return nil
 }
 
-func (h *SqsHeartbeat) wrapHandler(handler ctypes.HandleMessage) ctypes.HandleMessage {
-	return func(ctx context.Context, processId string, message interface{}) (bool, error) {
-		msg, ok := message.(*types.Message)
-		if !ok {
-			return false, fmt.Errorf("invalid message type for sqs heartbeat")
-		}
-
+func (h *SqsHeartbeat) wrapHandler(handler ctypes.HandleMessage[types.Message]) ctypes.HandleMessage[types.Message] {
+	return func(ctx context.Context, processId string, message types.Message) (bool, error) {
 		ticker := time.NewTicker(h.heartbeatInterval)
 		done := make(chan struct{})
 
@@ -88,12 +82,12 @@ func (h *SqsHeartbeat) wrapHandler(handler ctypes.HandleMessage) ctypes.HandleMe
 				case <-done:
 					return
 				case <-ticker.C:
-					h.SendHeatbeat(*msg.ReceiptHandle)
+					h.SendHeatbeat(*message.ReceiptHandle)
 				}
 			}
 		}()
 
-		return handler(ctx, processId, msg)
+		return handler(ctx, processId, message)
 	}
 }
 

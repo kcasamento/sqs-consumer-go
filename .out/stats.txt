@@ -1,35 +1,36 @@
 goos: darwin
 goarch: arm64
 pkg: github.com/kcasamento/sqs-consumer-go/internal/harvester
-BenchmarkBatchHarvester_int-12       	 1254774	       968.5 ns/op	       8 B/op	       0 allocs/op
-BenchmarkBatchHarvester_int-12       	 1000000	      1000 ns/op	       8 B/op	       0 allocs/op
-BenchmarkBatchHarvester_int-12       	 1261704	      1006 ns/op	       8 B/op	       0 allocs/op
-BenchmarkBatchHarvester_int-12       	 1214023	       991.2 ns/op	       8 B/op	       0 allocs/op
-BenchmarkBatchHarvester_int-12       	 1231890	      1015 ns/op	       8 B/op	       0 allocs/op
-BenchmarkBatchHarvester_int-12       	 1227055	      1013 ns/op	       8 B/op	       0 allocs/op
-BenchmarkBatchHarvester_int-12       	 1215806	      1035 ns/op	       8 B/op	       0 allocs/op
-BenchmarkBatchHarvester_int-12       	 1000000	      1043 ns/op	       8 B/op	       0 allocs/op
-BenchmarkBatchHarvester_int-12       	 1000000	      1006 ns/op	       8 B/op	       0 allocs/op
-BenchmarkBatchHarvester_int-12       	 1215218	       999.9 ns/op	       8 B/op	       0 allocs/op
-BenchmarkBatchHarvester_string-12    	  592155	      2181 ns/op	     104 B/op	       2 allocs/op
-BenchmarkBatchHarvester_string-12    	  637556	      2072 ns/op	     104 B/op	       2 allocs/op
-BenchmarkBatchHarvester_string-12    	  600800	      2116 ns/op	     103 B/op	       2 allocs/op
-BenchmarkBatchHarvester_string-12    	  624979	      2172 ns/op	     103 B/op	       2 allocs/op
-BenchmarkBatchHarvester_string-12    	  671588	      2192 ns/op	     103 B/op	       2 allocs/op
-BenchmarkBatchHarvester_string-12    	  574330	      2132 ns/op	     104 B/op	       2 allocs/op
-BenchmarkBatchHarvester_string-12    	  615544	      2062 ns/op	     104 B/op	       2 allocs/op
-BenchmarkBatchHarvester_string-12    	  622850	      2133 ns/op	     103 B/op	       2 allocs/op
-BenchmarkBatchHarvester_string-12    	  576729	      2107 ns/op	     104 B/op	       2 allocs/op
-BenchmarkBatchHarvester_string-12    	  601272	      2185 ns/op	     104 B/op	       2 allocs/op
-BenchmarkBatchHarvester_struct-12    	 1648534	       933.0 ns/op	      24 B/op	       1 allocs/op
-BenchmarkBatchHarvester_struct-12    	 1303296	       939.5 ns/op	      24 B/op	       1 allocs/op
-BenchmarkBatchHarvester_struct-12    	 1232439	       959.6 ns/op	      24 B/op	       1 allocs/op
-BenchmarkBatchHarvester_struct-12    	 1221405	       965.4 ns/op	      24 B/op	       1 allocs/op
-BenchmarkBatchHarvester_struct-12    	 1245921	       950.4 ns/op	      24 B/op	       1 allocs/op
-BenchmarkBatchHarvester_struct-12    	 1716084	       948.2 ns/op	      24 B/op	       1 allocs/op
-BenchmarkBatchHarvester_struct-12    	 1265006	       949.2 ns/op	      24 B/op	       1 allocs/op
-BenchmarkBatchHarvester_struct-12    	 1728852	       699.4 ns/op	      24 B/op	       1 allocs/op
-BenchmarkBatchHarvester_struct-12    	 1473885	       695.6 ns/op	      24 B/op	       1 allocs/op
-BenchmarkBatchHarvester_struct-12    	 1728279	       696.1 ns/op	      24 B/op	       1 allocs/op
+cpu: Apple M2 Max
+BenchmarkBatchHarvester_int-12       	 1402122	       940.5 ns/op	       8 B/op	       0 allocs/op
+BenchmarkBatchHarvester_int-12       	 1278121	       995.9 ns/op	       8 B/op	       0 allocs/op
+BenchmarkBatchHarvester_int-12       	 1000000	      1056 ns/op	       8 B/op	       0 allocs/op
+BenchmarkBatchHarvester_int-12       	 1000000	      1038 ns/op	       8 B/op	       0 allocs/op
+BenchmarkBatchHarvester_int-12       	 1315597	       997.4 ns/op	       8 B/op	       0 allocs/op
+BenchmarkBatchHarvester_int-12       	 1000000	      1041 ns/op	       8 B/op	       0 allocs/op
+BenchmarkBatchHarvester_int-12       	 1202818	      1001 ns/op	       8 B/op	       0 allocs/op
+BenchmarkBatchHarvester_int-12       	 1232461	       992.4 ns/op	       8 B/op	       0 allocs/op
+BenchmarkBatchHarvester_int-12       	 1000000	      1076 ns/op	       8 B/op	       0 allocs/op
+BenchmarkBatchHarvester_int-12       	 1000000	      1039 ns/op	       8 B/op	       0 allocs/op
+BenchmarkBatchHarvester_string-12    	  483644	      2478 ns/op	     104 B/op	       2 allocs/op
+BenchmarkBatchHarvester_string-12    	  485850	      2467 ns/op	     104 B/op	       2 allocs/op
+BenchmarkBatchHarvester_string-12    	  492170	      2481 ns/op	     104 B/op	       2 allocs/op
+BenchmarkBatchHarvester_string-12    	  492746	      2484 ns/op	     103 B/op	       2 allocs/op
+BenchmarkBatchHarvester_string-12    	  490980	      2461 ns/op	     104 B/op	       2 allocs/op
+BenchmarkBatchHarvester_string-12    	  487701	      2445 ns/op	     103 B/op	       2 allocs/op
+BenchmarkBatchHarvester_string-12    	  481507	      2477 ns/op	     104 B/op	       2 allocs/op
+BenchmarkBatchHarvester_string-12    	  489464	      2484 ns/op	     104 B/op	       2 allocs/op
+BenchmarkBatchHarvester_string-12    	  487008	      2471 ns/op	     104 B/op	       2 allocs/op
+BenchmarkBatchHarvester_string-12    	  490986	      2507 ns/op	     104 B/op	       2 allocs/op
+BenchmarkBatchHarvester_struct-12    	 1247131	       939.2 ns/op	      24 B/op	       1 allocs/op
+BenchmarkBatchHarvester_struct-12    	 1268269	       929.9 ns/op	      24 B/op	       1 allocs/op
+BenchmarkBatchHarvester_struct-12    	 1301059	       925.7 ns/op	      24 B/op	       1 allocs/op
+BenchmarkBatchHarvester_struct-12    	 1242751	       960.8 ns/op	      24 B/op	       1 allocs/op
+BenchmarkBatchHarvester_struct-12    	 1263705	       957.7 ns/op	      24 B/op	       1 allocs/op
+BenchmarkBatchHarvester_struct-12    	 1256222	       934.7 ns/op	      24 B/op	       1 allocs/op
+BenchmarkBatchHarvester_struct-12    	 1267155	       910.5 ns/op	      24 B/op	       1 allocs/op
+BenchmarkBatchHarvester_struct-12    	 1263974	       950.9 ns/op	      24 B/op	       1 allocs/op
+BenchmarkBatchHarvester_struct-12    	 1280106	       956.8 ns/op	      24 B/op	       1 allocs/op
+BenchmarkBatchHarvester_struct-12    	 1263307	       935.0 ns/op	      24 B/op	       1 allocs/op
 PASS
-ok  	github.com/kcasamento/sqs-consumer-go/internal/harvester	55.775s
+ok  	github.com/kcasamento/sqs-consumer-go/internal/harvester	51.888s

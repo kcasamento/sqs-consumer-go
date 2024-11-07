@@ -22,7 +22,7 @@ const (
 type SqsRunner struct {
 	stop                chan struct{}
 	worker              worker.Worker
-	handler             types.HandleMessage
+	handler             types.HandleMessage[awstypes.Message]
 	client              service.Sqs
 	queueUrl            string
 	queueAttributeNames []string
@@ -34,7 +34,7 @@ type SqsRunner struct {
 }
 
 func NewSqsRunner(
-	handler types.HandleMessage,
+	handler types.HandleMessage[awstypes.Message],
 	batchSize int,
 	batchInterval time.Duration,
 	client service.Sqs,
@@ -124,7 +124,7 @@ func (r *SqsRunner) tick(ctx context.Context) {
 	}
 }
 
-func (r *SqsRunner) ack(messages []*awstypes.Message) {
+func (r *SqsRunner) ack(messages []awstypes.Message) {
 	ctx := context.Background()
 
 	batch := make([]awstypes.DeleteMessageBatchRequestEntry, len(messages))

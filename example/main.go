@@ -8,8 +8,10 @@ import (
 	"syscall"
 	"time"
 
-	consumer "github.com/kcasamento/sqs-consumer-go"
+	consumer "github.com/kcasamento/sqs-consumer-go/consumer"
 	"github.com/kcasamento/sqs-consumer-go/internal/runner"
+
+	awstypes "github.com/aws/aws-sdk-go-v2/service/sqs/types"
 )
 
 func main() {
@@ -17,9 +19,9 @@ func main() {
 	signal.Notify(done, syscall.SIGINT, syscall.SIGTERM)
 
 	queueUrl := "http://localhost:4566/000000000000/consumer-test-queue"
-	c, err := consumer.New(
+	c, sh, err := consumer.New(
 		queueUrl,
-		func(_ context.Context, processId string, _ interface{}) (bool, error) {
+		func(_ context.Context, processId string, _ awstypes.Message) (bool, error) {
 			// time.Sleep(2 * time.Second)
 			// fmt.Printf("processId: %s\n", processId)
 			return false, nil
@@ -48,7 +50,7 @@ func main() {
 
 	<-done
 
-	c.Stop(ctx)
+	_ = sh(ctx)
 
 	log.Printf("consumer is shutdown")
 }

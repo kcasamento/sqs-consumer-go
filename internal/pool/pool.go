@@ -72,7 +72,7 @@ func (p *Pool) dispatch() {
 Loop:
 	for {
 		// check if any tasks were queued up in memory
-		// and handle start processing those before
+		// and start processing those before
 		// we take on any "new" work
 		// if new tasks come in during this period they will get
 		// get added to the end of the queue

@@ -38,10 +38,6 @@ func (p *SemPool) Dispatch(ctx context.Context, task func()) error {
 		return fmt.Errorf("pool is stopped")
 	}
 
-	// timeout if aquiring a lock takes too long
-	timeoutCtx, timeout := context.WithTimeout(ctx, p.aquireTimeout)
-	defer timeout()
-
 	// wrap the unit of work such that
 	// we release the lock when done and
 	// decrement the wait group counter
@@ -53,9 +49,17 @@ func (p *SemPool) Dispatch(ctx context.Context, task func()) error {
 		task()
 	}
 
-	// try to aquire a lock
-	if err := p.sem.Acquire(timeoutCtx, 1); err != nil {
-		return err
+	for {
+		// timeout if aquiring a lock takes too long
+		timeoutCtx, timeout := context.WithTimeout(ctx, p.aquireTimeout)
+		// try to aquire a lock
+		if err := p.sem.Acquire(timeoutCtx, 1); err != nil {
+			/* return err */
+			continue
+		}
+
+		timeout()
+		break
 	}
 
 	// we got a lock, so increment the wait group

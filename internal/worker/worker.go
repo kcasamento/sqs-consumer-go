@@ -4,7 +4,7 @@ import (
 	"context"
 )
 
-type Worker interface {
-	Submit(context.Context, interface{}) error
+type Worker[T interface{}] interface {
+	Submit(context.Context, T) error
 	Stop(context.Context) error
 }

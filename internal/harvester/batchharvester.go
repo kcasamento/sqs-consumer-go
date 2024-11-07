@@ -1,7 +1,6 @@
 package harvester
 
 import (
-	"reflect"
 	"sync"
 	"sync/atomic"
 	"time"

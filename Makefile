@@ -1,3 +1,7 @@
+.PHONY test:
+test:
+	go test -v -race ./...
+
 .PHONY bench-harvester:
 bench-harvester:
 	rm -rf .out && \
